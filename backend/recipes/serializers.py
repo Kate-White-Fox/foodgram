@@ -1,20 +1,16 @@
 import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from recipes.models import Ingredient, Tag, Recipe, RecipeIngredient
+from recipes.models import Ingredient, Tag, Recipe, RecipeIngredient, ShoppingList
 
 
 class Base64ImageField(serializers.ImageField):
-    """
-    Кастомное поле для обработки изображений в формате Base64.
-    Декодирует строку и сохраняет как файл.
-    """
+    """Кастомное поле для обработки изображений в формате Base64."""
     def to_internal_value(self, data):
         if isinstance(data, str) and data.startswith('data:image'):
             format, imgstr = data.split(';base64,')
             ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name='temp.' + ext)
-
         return super().to_internal_value(data)
 
 
@@ -47,11 +43,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     author = serializers.SerializerMethodField()
     ingredients = serializers.SerializerMethodField()
     image = Base64ImageField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
             'id', 'tags', 'author', 'ingredients',
+            'is_in_shopping_cart',
             'name', 'image', 'text', 'cooking_time'
         )
 
@@ -66,3 +64,16 @@ class RecipeSerializer(serializers.ModelSerializer):
             "first_name": obj.author.first_name,
             "last_name": obj.author.last_name,
         }
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context.get('request').user
+        if user is None or user.is_anonymous:
+            return False
+        return ShoppingList.objects.filter(user=user, recipe=obj).exists()
+
+
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('id', 'name', 'image', 'cooking_time')

@@ -156,12 +156,12 @@ class ShoppingList(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='shopping_list',
+        related_name='shopping_cart',
     )
     recipe = models.ForeignKey(
-        Recipe,
-        on_delete=models.CASCADE,
-        related_name='shopping_recipe',
+        Recipe, 
+        on_delete=models.CASCADE, 
+        related_name='in_shopping_list'
     )
 
     class Meta:

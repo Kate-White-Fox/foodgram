@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnl
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 
-from .models import Recipe, Tag, Ingredient, RecipeIngredient, ShoppingList
+from .models import Recipe, Tag, Ingredient, RecipeIngredient, ShoppingList, Favorite
 from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingCartSerializer, RecipeCreateSerializer
 from .pagination import CustomPageNumberPagination
 
@@ -62,18 +62,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def download_shopping_cart(self, request):
         user = request.user
 
-        # Проверяем наличие покупок
-        if not user.shopping_list.exists():
+        cart_recipes = Recipe.objects.filter(in_shopping_list__user=user)
+        if not cart_recipes.exists():
             return HttpResponse(
                 "Ваш список покупок пуст", 
                 content_type='text/plain; charset=utf-8'
             )
 
-        # Выбираем ингредиенты через обратную связь
-        # Мы идем от RecipeIngredient -> к Recipe -> к ShoppingList
         ingredients = (
             RecipeIngredient.objects
-            .filter(recipe__in_shopping_list__user=user) # Используем новый related_name
+            .filter(recipe__in_shopping_list__user=user)
             .values('ingredient__name', 'ingredient__measurement_unit')
             .annotate(total_amount=Sum('amount'))
             .order_by('ingredient__name')
@@ -94,6 +92,49 @@ class RecipeViewSet(viewsets.ModelViewSet):
         )
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
+
+    def get_queryset(self):
+        queryset = Recipe.objects.all().order_by('-pub_date')
+
+        # Фильтр по тегам
+        tags = self.request.query_params.getlist('tags')
+        if tags:
+            queryset = queryset.filter(tags__slug__in=tags).distinct()
+
+        # Фильтр по автору
+        author = self.request.query_params.get('author')
+        if author:
+            queryset = queryset.filter(author_id=author)
+
+        # Фильтр по избранному
+        is_favorited = self.request.query_params.get('is_favorited')
+        if is_favorited and self.request.user.is_authenticated:
+            queryset = queryset.filter(favorited_by__user=self.request.user)
+
+        # Фильтр по корзине покупок
+        is_in_shopping_cart = self.request.query_params.get('is_in_shopping_cart')
+        if is_in_shopping_cart and self.request.user.is_authenticated:
+            queryset = queryset.filter(in_shopping_list__user=self.request.user)
+
+        return queryset
+
+    @action(
+        detail=True,
+        methods=['post', 'delete'],
+        permission_classes=[IsAuthenticated],
+        url_path='favorite'
+    )
+    def favorite(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        user = request.user
+
+        if request.method == 'POST':
+            Favorite.objects.create(user=user, recipe=recipe)
+            return Response({'status': 'added'}, status=201)
+
+        # DELETE
+        Favorite.objects.filter(user=user, recipe=recipe).delete()
+        return Response(status=204)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

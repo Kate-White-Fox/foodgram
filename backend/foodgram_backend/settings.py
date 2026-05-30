@@ -123,6 +123,10 @@ DJOSER = {
     'USER_ID_FIELD': 'email',
     'LOGIN_FIELD': 'email',
     'USER_CREATE_PASSWORD_RETYPE': False,
+    'PERMISSIONS': {
+        'user': ['rest_framework.permissions.AllowAny'],
+        'user_list': ['rest_framework.permissions.AllowAny'],
+    },
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

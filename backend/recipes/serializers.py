@@ -1,7 +1,7 @@
 import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
-from recipes.models import Ingredient, Tag, Recipe, RecipeIngredient, ShoppingList
+from recipes.models import Ingredient, Tag, Recipe, RecipeIngredient, ShoppingList, Favorite
 
 
 class Base64ImageField(serializers.ImageField):
@@ -100,12 +100,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     ingredients = serializers.SerializerMethodField()
     image = Base64ImageField()
     is_in_shopping_cart = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
             'id', 'tags', 'author', 'ingredients',
-            'is_in_shopping_cart',
+            'is_in_shopping_cart', 'is_favorited',
             'name', 'image', 'text', 'cooking_time'
         )
 
@@ -126,6 +127,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         if user is None or user.is_anonymous:
             return False
         return ShoppingList.objects.filter(user=user, recipe=obj).exists()
+
+    def get_is_favorited(self, obj):
+        user = self.context.get('request').user
+        if user is None or user.is_anonymous:
+            return False
+        return Favorite.objects.filter(user=user, recipe=obj).exists()
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

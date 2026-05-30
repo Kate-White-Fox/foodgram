@@ -120,7 +120,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @action(
         detail=True,
-        methods=['post', 'delete'],
+        methods=['get', 'post', 'delete'],
         permission_classes=[IsAuthenticated],
         url_path='favorite'
     )
@@ -128,13 +128,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
         recipe = get_object_or_404(Recipe, pk=pk)
         user = request.user
 
-        if request.method == 'POST':
-            Favorite.objects.create(user=user, recipe=recipe)
-            return Response({'status': 'added'}, status=201)
+        if request.method == 'GET':
+            is_favorited = Favorite.objects.filter(user=user, recipe=recipe).exists()
+            return Response({'is_favorited': is_favorited})
 
-        # DELETE
-        Favorite.objects.filter(user=user, recipe=recipe).delete()
-        return Response(status=204)
+        if request.method == 'POST':
+            if Favorite.objects.filter(user=user, recipe=recipe).exists():
+                return Response(
+                    {'errors': 'Рецепт уже в избранном'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            Favorite.objects.create(user=user, recipe=recipe)
+            serializer = self.get_serializer(recipe)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            Favorite.objects.filter(user=user, recipe=recipe).delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

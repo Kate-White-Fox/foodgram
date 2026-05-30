@@ -38,6 +38,62 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'measurement_unit', 'amount')
 
 
+class RecipeCreateSerializer(serializers.ModelSerializer):
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(),
+        many=True
+    )
+    ingredients = serializers.ListField(
+        child=serializers.DictField(),
+        write_only=True
+    )
+    image = Base64ImageField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id', 'tags', 'ingredients',
+            'name', 'image', 'text', 'cooking_time'
+        )
+
+    def create(self, validated_data):
+        tags = validated_data.pop('tags')
+        ingredients_data = validated_data.pop('ingredients')
+        recipe = Recipe.objects.create(**validated_data)
+        recipe.tags.set(tags)
+
+        for ingredient_item in ingredients_data:
+            RecipeIngredient.objects.create(
+                recipe=recipe,
+                ingredient_id=ingredient_item['id'],
+                amount=ingredient_item['amount']
+            )
+
+        return recipe
+
+    def update(self, instance, validated_data):
+        tags = validated_data.pop('tags', None)
+        ingredients_data = validated_data.pop('ingredients', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+
+        if tags is not None:
+            instance.tags.set(tags)
+
+        if ingredients_data is not None:
+            instance.ingredient_list.all().delete()
+            for ingredient_item in ingredients_data:
+                RecipeIngredient.objects.create(
+                    recipe=instance,
+                    ingredient_id=ingredient_item['id'],
+                    amount=ingredient_item['amount']
+                )
+
+        return instance
+
+
 class RecipeSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)
     author = serializers.SerializerMethodField()

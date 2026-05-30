@@ -8,15 +8,19 @@ from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 
 from .models import Recipe, Tag, Ingredient, RecipeIngredient, ShoppingList
-from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingCartSerializer
+from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingCartSerializer, RecipeCreateSerializer
 from .pagination import CustomPageNumberPagination
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all().order_by('-pub_date')
-    serializer_class = RecipeSerializer
     pagination_class = CustomPageNumberPagination
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return RecipeCreateSerializer
+        return RecipeSerializer
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -95,7 +99,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    pagination_class = CustomPageNumberPagination
 
 
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):

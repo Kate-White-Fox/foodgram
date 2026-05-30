@@ -20,19 +20,19 @@ services:
       - media_value:/app/media/
     restart: always
 
-  # nginx:
-  #   container_name: foodgram-proxy
-  #   build:
-  #     context: ../
-  #     dockerfile: infra/nginx/Dockerfile
-  #   ports:
-  #     - "80:80"
-  #   volumes:
-  #     - static_value:/var/html/static/
-  #     - media_value:/var/html/media/
-  #   depends_on:
-  #     - backend
-  #   restart: always
+  nginx:
+    container_name: foodgram-proxy
+    build:
+      context: ../
+      dockerfile: infra/nginx/Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - static_value:/var/html/static/
+      - media_value:/var/html/media/
+    depends_on:
+      - backend
+    restart: always
 
 volumes:
   postgres_data:

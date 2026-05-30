@@ -3,12 +3,15 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 
 from .models import Recipe, Tag, Ingredient, RecipeIngredient, ShoppingList, Favorite
-from .serializers import RecipeSerializer, TagSerializer, IngredientSerializer, ShoppingCartSerializer, RecipeCreateSerializer
+from .serializers import (
+    RecipeSerializer, TagSerializer, IngredientSerializer,
+    ShoppingCartSerializer, RecipeCreateSerializer
+)
 from .pagination import CustomPageNumberPagination
 
 
@@ -65,7 +68,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         cart_recipes = Recipe.objects.filter(in_shopping_list__user=user)
         if not cart_recipes.exists():
             return HttpResponse(
-                "Ваш список покупок пуст", 
+                "Ваш список покупок пуст",
                 content_type='text/plain; charset=utf-8'
             )
 
@@ -145,6 +148,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
         if request.method == 'DELETE':
             Favorite.objects.filter(user=user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True,
+        methods=['get'],
+        url_path='get-link',
+        permission_classes=[AllowAny]
+    )
+    def get_link(self, request, pk=None):
+        recipe = get_object_or_404(Recipe, pk=pk)
+
+        scheme = request.scheme 
+        host = request.get_host()
+
+        link = f"{scheme}://{host}/recipes/{recipe.id}/"
+
+        return Response({
+            'short-link': link,
+            'short_link': link,
+            'link': link
+        }, status=status.HTTP_200_OK)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):

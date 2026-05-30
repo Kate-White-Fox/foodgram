@@ -1,6 +1,7 @@
 import base64
 from django.core.files.base import ContentFile
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 from recipes.models import Ingredient, Tag, Recipe, RecipeIngredient, ShoppingList, Favorite
 
 
@@ -101,12 +102,13 @@ class RecipeSerializer(serializers.ModelSerializer):
     image = Base64ImageField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
+    share_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Recipe
         fields = (
             'id', 'tags', 'author', 'ingredients',
-            'is_in_shopping_cart', 'is_favorited',
+            'is_in_shopping_cart', 'is_favorited', 'share_link',
             'name', 'image', 'text', 'cooking_time'
         )
 
@@ -133,6 +135,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         if user is None or user.is_anonymous:
             return False
         return Favorite.objects.filter(user=user, recipe=obj).exists()
+
+    def get_share_link(self, obj):
+        request = self.context.get('request')
+        if not request:
+            return None
+        relative_link = reverse('recipe-detail', args=[obj.id], request=request)
+        return request.build_absolute_uri(relative_link)
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'recipes',
     'rest_framework.authtoken',
     'djoser',
+    'drf_spectacular',
 ]
 
 MIDDLEWARE = [
@@ -117,6 +118,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': (
         'django_filters.rest_framework.DjangoFilterBackend',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 DJOSER = {
@@ -127,6 +129,12 @@ DJOSER = {
         'user': ['rest_framework.permissions.AllowAny'],
         'user_list': ['rest_framework.permissions.AllowAny'],
     },
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Foodgram API',
+    'DESCRIPTION': 'API для сервиса публикации рецептов',
+    'VERSION': '1.0.0',
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

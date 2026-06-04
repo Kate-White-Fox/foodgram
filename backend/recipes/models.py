@@ -1,6 +1,9 @@
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class Ingredient(models.Model):
@@ -104,29 +107,24 @@ class RecipeIngredient(models.Model):
         ]
 
 
-class Follow(models.Model):
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='follower',
-        verbose_name='Подписчик'
-    )
-    author = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name='following',
-        verbose_name='Автор'
-    )
+class Subscription(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='follower')
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following')
 
     class Meta:
-        verbose_name = 'Подписка'
-        verbose_name_plural = 'Подписки'
+        db_table = 'recipes_follow'
+        ordering = ('-id',)
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'author'],
-                name='unique_subscribe'
+                fields=('user', 'author'),
+                name='unique_subscription'
             )
         ]
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
+
+    def __str__(self):
+        return f'{self.user.username} подписан на {self.author.username}'
 
 
 class Favorite(models.Model):
@@ -165,6 +163,7 @@ class ShoppingList(models.Model):
     )
 
     class Meta:
+        db_table = 'recipes_shoppinglist'
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
         constraints = [

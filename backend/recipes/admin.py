@@ -1,30 +1,14 @@
 from django.contrib import admin
 from .models import (
-    Ingredient,
-    Tag,
-    Recipe,
-    RecipeIngredient,
-    Follow,
-    Favorite,
-    ShoppingList
+    Recipe, Tag, Ingredient, RecipeIngredient,
+    Subscription, Favorite, ShoppingList
 )
 
 
-class RecipeIngredientInline(admin.TabularInline):
-    model = RecipeIngredient
-    extra = 1
-
-
-@admin.register(Recipe)
-class RecipeAdmin(admin.ModelAdmin):
-    list_display = ('name', 'author', 'count_favorites')
-    search_fields = ('name', 'author__username', 'author__email')
-    list_filter = ('tags', 'author', 'name')
-    inlines = (RecipeIngredientInline,)
-
-    def count_favorites(self, obj):
-        return obj.favorited_by.count()
-    count_favorites.short_description = 'Добавлений в избранное'
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    list_display = ('name', 'slug')
+    search_fields = ('name',)
 
 
 @admin.register(Ingredient)
@@ -33,7 +17,37 @@ class IngredientAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 
-admin.site.register(Tag)
-admin.site.register(Follow)
-admin.site.register(Favorite)
-admin.site.register(ShoppingList)
+class RecipeIngredientInline(admin.TabularInline):
+    model = RecipeIngredient
+    extra = 1
+    min_num = 1
+
+
+@admin.register(Recipe)
+class RecipeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'author', 'cooking_time', 'favorites_count')
+    list_filter = ('tags', 'author')
+    search_fields = ('name', 'author__username')
+    inlines = [RecipeIngredientInline]
+
+    def favorites_count(self, obj):
+        return obj.favorited_by.count()
+    favorites_count.short_description = 'В избранном'
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'author')
+    search_fields = ('user__username', 'author__username')
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe')
+    search_fields = ('user__username', 'recipe__name')
+
+
+@admin.register(ShoppingList)
+class ShoppingListAdmin(admin.ModelAdmin):
+    list_display = ('user', 'recipe')
+    search_fields = ('user__username', 'recipe__name')

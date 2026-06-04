@@ -1,0 +1,30 @@
+name: Foodgram Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd /opt/foodgram
+            git pull
+            docker-compose -f infra/docker-compose.yml down
+            docker-compose -f infra/docker-compose.yml up -d --build
+            docker-compose -f infra/docker-compose.yml exec -T backend python manage.py migrate
+            docker-compose -f infra/docker-compose.yml exec -T backend python manage.py collectstatic --noinput

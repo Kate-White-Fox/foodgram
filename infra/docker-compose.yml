@@ -20,21 +20,32 @@ services:
       - media_value:/app/media/
     restart: always
 
-  nginx:
-    container_name: foodgram-proxy
+  frontend:
     build:
       context: ../
-      dockerfile: infra/nginx/Dockerfile
+      dockerfile: frontend/Dockerfile
+    container_name: foodgram-frontend
+    volumes:
+      - frontend_build:/app/result_build/
+    restart: "no"
+
+  nginx:
+    container_name: foodgram-proxy
+    image: nginx:1.25.4-alpine
     ports:
       - "80:80"
     volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
       - static_value:/var/html/static/
       - media_value:/var/html/media/
+      - frontend_build:/usr/share/nginx/html/
     depends_on:
       - backend
+      - frontend
     restart: always
 
 volumes:
   postgres_data:
   static_value:
   media_value:
+  frontend_build:

@@ -126,3 +126,29 @@ class CurrentUserAvatarView(views.APIView):
             avatar_url = request.build_absolute_uri(user.avatar.url)
 
         return Response({'avatar': avatar_url}, status=status.HTTP_200_OK)
+
+
+class SetPasswordView(views.APIView):
+    """Смена пароля текущего пользователя"""
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not current_password or not new_password:
+            return Response(
+                {'error': 'current_password и new_password обязательны'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not user.check_password(current_password):
+            return Response(
+                {'current_password': 'Неверный пароль'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user.set_password(new_password)
+        user.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)

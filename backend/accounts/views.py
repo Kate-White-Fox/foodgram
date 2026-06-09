@@ -106,26 +106,42 @@ class UserDetailView(generics.RetrieveAPIView):
 
 
 class CurrentUserAvatarView(views.APIView):
-    """Отдельный endpoint для загрузки/обновления аватара"""
+    """Аватар: загрузка (PUT), удаление (DELETE)"""
     permission_classes = [IsAuthenticated]
 
     def put(self, request):
-        user = request.user
         avatar_data = request.data.get('avatar')
-        if avatar_data:
+        if not avatar_data:
+            return Response(
+                {'avatar': 'Поле avatar обязательно'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
             from django.core.files.base import ContentFile
             import base64
             import uuid
             format, imgstr = avatar_data.split(';base64,')
             ext = format.split('/')[-1]
             data = ContentFile(base64.b64decode(imgstr), name=f'{uuid.uuid4()}.{ext}')
-            user.avatar.save(data.name, data, save=True)
+            request.user.avatar.save(data.name, data, save=True)
+        except (ValueError, KeyError):
+            return Response(
+                {'avatar': 'Неверный формат данных'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         avatar_url = None
-        if user.avatar and hasattr(user.avatar, 'url'):
-            avatar_url = request.build_absolute_uri(user.avatar.url)
+        if request.user.avatar and hasattr(request.user.avatar, 'url'):
+            avatar_url = request.build_absolute_uri(request.user.avatar.url)
 
         return Response({'avatar': avatar_url}, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        user = request.user
+        if user.avatar:
+            user.avatar.delete(save=True)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class SetPasswordView(views.APIView):

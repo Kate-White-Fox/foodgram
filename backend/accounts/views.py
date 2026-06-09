@@ -26,7 +26,7 @@ class CurrentUserView(views.APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        serializer = UserSerializer(request.user)
+        serializer = UserSerializer(request.user, context={'request': request})
         return Response(serializer.data)
 
 
@@ -103,3 +103,26 @@ class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+
+
+class CurrentUserAvatarView(views.APIView):
+    """Отдельный endpoint для загрузки/обновления аватара"""
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user
+        avatar_data = request.data.get('avatar')
+        if avatar_data:
+            from django.core.files.base import ContentFile
+            import base64
+            import uuid
+            format, imgstr = avatar_data.split(';base64,')
+            ext = format.split('/')[-1]
+            data = ContentFile(base64.b64decode(imgstr), name=f'{uuid.uuid4()}.{ext}')
+            user.avatar.save(data.name, data, save=True)
+
+        avatar_url = None
+        if user.avatar and hasattr(user.avatar, 'url'):
+            avatar_url = request.build_absolute_uri(user.avatar.url)
+
+        return Response({'avatar': avatar_url}, status=status.HTTP_200_OK)

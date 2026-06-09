@@ -7,7 +7,7 @@ class CustomUserManager(UserManager):
         if not email:
             raise ValueError('The Email field must be set')
         email = self.normalize_email(email)
-        extra_fields.setdefault('username', email)
+        extra_fields.setdefault('is_active', True)
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -26,13 +26,45 @@ class CustomUserManager(UserManager):
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    username = models.CharField(max_length=150, blank=True, null=True)
+    email = models.EmailField(
+        unique=True,
+        max_length=254,
+        verbose_name='Email',
+    )
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        blank=False,
+        null=False,
+        verbose_name='Username',
+        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.',
+    )
+    first_name = models.CharField(
+        max_length=150,
+        blank=False,
+        verbose_name='First name',
+    )
+    last_name = models.CharField(
+        max_length=150,
+        blank=False,
+        verbose_name='Last name',
+    )
+    avatar = models.ImageField(
+        upload_to='avatars/',
+        blank=True,
+        null=True,
+        verbose_name='Avatar',
+    )
 
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = []
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+        ordering = ('id',)
 
     def __str__(self):
         return self.email

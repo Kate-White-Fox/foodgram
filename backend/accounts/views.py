@@ -1,4 +1,5 @@
 from rest_framework import generics, views, viewsets, mixins, status
+from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -86,3 +87,19 @@ class SubscriptionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 {'error': 'Такой подписки нет'},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+
+class UserListView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
+    permission_classes = [AllowAny]
+    pagination_class = LimitOffsetPagination
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return UserCreateSerializer
+        return UserSerializer
+
+class UserDetailView(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]

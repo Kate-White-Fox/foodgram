@@ -176,9 +176,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         link = f"{scheme}://{host}/recipes/{recipe.id}/"
 
         return Response({
-            'short-link': link,
-            'short_link': link,
-            'link': link
+            'short-link': link
         }, status=status.HTTP_200_OK)
 
 

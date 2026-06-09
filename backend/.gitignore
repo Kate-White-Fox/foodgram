@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pyo
+*.swp
+db.sqlite3
+.DS_Store
+media/recipes/

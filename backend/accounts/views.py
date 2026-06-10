@@ -1,5 +1,4 @@
 from rest_framework import generics, views, viewsets, mixins, status
-from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -92,79 +91,8 @@ class SubscriptionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 class UserListView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
-    pagination_class = LimitOffsetPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return UserCreateSerializer
         return UserSerializer
-
-class UserDetailView(generics.RetrieveAPIView):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    permission_classes = [AllowAny]
-
-
-class CurrentUserAvatarView(views.APIView):
-    """Аватар: загрузка (PUT), удаление (DELETE)"""
-    permission_classes = [IsAuthenticated]
-
-    def put(self, request):
-        avatar_data = request.data.get('avatar')
-        if not avatar_data:
-            return Response(
-                {'avatar': 'Поле avatar обязательно'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            from django.core.files.base import ContentFile
-            import base64
-            import uuid
-            format, imgstr = avatar_data.split(';base64,')
-            ext = format.split('/')[-1]
-            data = ContentFile(base64.b64decode(imgstr), name=f'{uuid.uuid4()}.{ext}')
-            request.user.avatar.save(data.name, data, save=True)
-        except (ValueError, KeyError):
-            return Response(
-                {'avatar': 'Неверный формат данных'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        avatar_url = None
-        if request.user.avatar and hasattr(request.user.avatar, 'url'):
-            avatar_url = request.build_absolute_uri(request.user.avatar.url)
-
-        return Response({'avatar': avatar_url}, status=status.HTTP_200_OK)
-
-    def delete(self, request):
-        user = request.user
-        if user.avatar:
-            user.avatar.delete(save=True)
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
-
-class SetPasswordView(views.APIView):
-    """Смена пароля текущего пользователя"""
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        current_password = request.data.get('current_password')
-        new_password = request.data.get('new_password')
-
-        if not current_password or not new_password:
-            return Response(
-                {'error': 'current_password и new_password обязательны'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not user.check_password(current_password):
-            return Response(
-                {'current_password': 'Неверный пароль'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        user.set_password(new_password)
-        user.save()
-        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -9,25 +9,20 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
-    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed', 'avatar')
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
-            return False
-        return Subscription.objects.filter(user=request.user, author=obj).exists()
-
-    def get_avatar(self, obj):
-        """Возвращает URL аватара строкой или None (тесты ожидают null как валидный string)"""
-        if obj.avatar and hasattr(obj.avatar, 'url'):
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.avatar.url)
-            return obj.avatar.url
-        return None
+        if request and request.user.is_authenticated:
+            if request.user == obj:
+                return False
+            return Subscription.objects.filter(
+                user=request.user, author=obj
+            ).exists()
+        return False
 
 
 class UserCreateSerializer(serializers.ModelSerializer):

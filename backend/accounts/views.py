@@ -4,6 +4,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
+from recipes.pagination import CustomPageNumberPagination
 
 from recipes.models import Subscription
 from .serializers import (
@@ -91,8 +92,15 @@ class SubscriptionViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 class UserListView(generics.ListCreateAPIView):
     queryset = User.objects.all()
     permission_classes = [AllowAny]
+    pagination_class = CustomPageNumberPagination
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return UserCreateSerializer
         return UserSerializer
+
+
+class UserDetailView(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [AllowAny]

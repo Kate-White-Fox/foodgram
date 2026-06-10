@@ -50,6 +50,8 @@ class User(AbstractUser):
         verbose_name='Last name',
     )
 
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'

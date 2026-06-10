@@ -11,6 +11,7 @@ from .serializers import (
     UserSerializer,
     UserCreateSerializer,
     SubscriptionAuthorSerializer,
+    AvatarUploadSerializer,
 )
 
 User = get_user_model()
@@ -104,3 +105,37 @@ class UserDetailView(generics.RetrieveAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
+
+import logging
+logger = logging.getLogger(__name__)
+
+class AvatarUpdateView(views.APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        import traceback
+        try:
+            user = request.user
+            logger.info(f'Avatar PUT FILES: {request.FILES}')
+            logger.info(f'Avatar PUT DATA: {request.data}')
+
+            # Проверим что файл загрузился
+            if 'avatar' in request.FILES:
+                logger.info('Avatar file found in FILES')
+            elif 'avatar' in request.data:
+                logger.info('Avatar found in data')
+            else:
+                logger.error('No avatar in request!')
+                return Response({'error': 'no avatar'}, status=400)
+
+            serializer = AvatarUploadSerializer(user, data=request.data, partial=True)
+            if serializer.is_valid():
+                instance = serializer.save()
+                logger.info(f'Avatar saved: {instance.avatar.url}')
+                return Response(serializer.data)
+            logger.error(f'Serializer errors: {serializer.errors}')
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f'Avatar PUT error: {e}')
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=500)

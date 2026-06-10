@@ -9,10 +9,18 @@ User = get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed', 'avatar')
+        read_only_fields = ('id', 'email')
+
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar:
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -94,6 +102,12 @@ class SubscriptionAuthorSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ('__all__',)
 
+    def get_avatar(self, obj):
+        request = self.context.get('request')
+        if obj.avatar:
+            return request.build_absolute_uri(obj.avatar.url) if request else obj.avatar.url
+        return None
+
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
@@ -119,3 +133,10 @@ class SubscriptionAuthorSerializer(serializers.ModelSerializer):
             context={'request': request}
         ).data
 
+
+
+class AvatarUploadSerializer(serializers.ModelSerializer):
+    """Сериализатор для PUT /api/users/me/avatar/"""
+    class Meta:
+        model = User
+        fields = ('avatar',)
